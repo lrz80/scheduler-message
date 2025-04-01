@@ -1,4 +1,4 @@
-import "dotenv/config";
+require("dotenv").config();
 import pool from "./lib/db";
 import twilio from "twilio";
 import fetch from "node-fetch";
