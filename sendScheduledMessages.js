@@ -1,8 +1,9 @@
-import "dotenv/config";
-import pool from "./lib/db";
-import twilio from "twilio";
-import fetch from "node-fetch";
+require("dotenv").config();
+const { Pool } = require("pg");
+const twilio = require("twilio");
+const fetch = require("node-fetch");
 
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 const PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN;
 
