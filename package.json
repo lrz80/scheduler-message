@@ -1,14 +1,15 @@
 {
-    "name": "message-scheduler",
-    "version": "1.0.0",
-    "main": "sendScheduledMessages.js",
-    "scripts": {
-      "start": "node sendScheduledMessages.js"
-    },
-    "dependencies": {
-      "pg": "^8.11.1",
-      "twilio": "^4.6.0",
-      "dotenv": "^16.3.1"
-    }
+  "name": "message-scheduler",
+  "version": "1.0.0",
+  "main": "sendScheduledMessages.js",
+  "scripts": {
+    "start": "node sendScheduledMessages.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.1",
+    "twilio": "^4.6.0",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^2.6.11"
   }
-  
+}
+
