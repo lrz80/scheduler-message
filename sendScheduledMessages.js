@@ -1,10 +1,11 @@
-require("dotenv").config();
-const { Pool } = require("pg");
-const twilio = require("twilio");
-const fetch = require("node-fetch");
+import "dotenv/config";
+import pool from "./lib/db";
+import twilio from "twilio";
+import fetch from "node-fetch";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+const WABA_TOKEN = process.env.TWILIO_WABA_TOKEN;
+const PHONE_ID = process.env.TWILIO_PHONE_NUMBER_ID;
 const PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN;
 
 async function main() {
@@ -25,15 +26,38 @@ async function main() {
         [msg.tenant_id]
       );
       const tenant = negocio.rows[0];
+      const canal = msg.canal;
 
-      // Enviar mensaje por canal correcto
-      if (msg.canal === "whatsapp") {
-        await twilioClient.messages.create({
-          body: msg.contenido,
-          from: `whatsapp:${tenant.twilio_number}`,
-          to: msg.contacto,
-        });
-      } else if (msg.canal === "facebook") {
+      if (canal === "whatsapp") {
+        // Usar plantilla si existe
+        if (msg.template_name) {
+          await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${WABA_TOKEN}`,
+            },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: msg.contacto.replace("whatsapp:", ""),
+              type: "template",
+              template: {
+                name: msg.template_name,
+                language: {
+                  code: msg.template_language || "es",
+                },
+              },
+            }),
+          });
+        } else {
+          // Enviar mensaje directo desde Twilio
+          await twilioClient.messages.create({
+            body: msg.contenido,
+            from: `whatsapp:${tenant.twilio_number}`,
+            to: msg.contacto,
+          });
+        }
+      } else if (canal === "facebook") {
         await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -44,11 +68,11 @@ async function main() {
         });
       }
 
-      // Guardar en historial
+      // Guardar mensaje en historial
       await pool.query(
         `INSERT INTO messages (tenant_id, sender, content, canal, timestamp)
          VALUES ($1, 'assistant', $2, $3, NOW())`,
-        [msg.tenant_id, msg.contenido, msg.canal]
+        [msg.tenant_id, msg.contenido, canal]
       );
 
       // Marcar como enviado
@@ -57,7 +81,7 @@ async function main() {
         [msg.id]
       );
 
-      console.log(`✅ Mensaje enviado a ${msg.contacto} (${msg.canal})`);
+      console.log(`✅ Mensaje enviado a ${msg.contacto} (${canal})`);
     } catch (err) {
       console.error(`❌ Error al enviar mensaje a ${msg.contacto}:`, err);
     }
